@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Register</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            400: '#60a5fa',
+                            600: '#2563eb',
+                        }
+                    },
+                    boxShadow: {
+                        'glow': '0 0 15px rgba(96, 165, 250, 0.5)',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
+    <div class="w-full max-w-md bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-2xl p-8 border border-gray-700/50 hover:shadow-glow transition-shadow duration-300">
+        <div class="flex justify-center mb-6">
+            <div class="w-16 h-16 rounded-full bg-gradient-to-r from-blue-600 to-blue-400 flex items-center justify-center shadow-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
+                </svg>
+            </div>
+        </div>
+        
+        <h2 class="text-3xl font-bold text-center text-blue-400 mb-2 tracking-wide">Create Account</h2>
+        <p class="text-center text-gray-400 mb-8">Join our community today</p>
+        
+        {% if messages %}
+            <ul class="mb-4">
+                {% for message in messages %}
+                    <li class="text-red-400 text-sm">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        
+        <form method="post" class="flex flex-col gap-4">
+            {% csrf_token %}
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Username</label>
+                    <input name="username" type="text" required class="w-full px-4 py-2 rounded-lg bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your username">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Email</label>
+                    <input name="email" type="email" required class="w-full px-4 py-2 rounded-lg bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your email">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Password</label>
+                    <input name="password1" type="password" required class="w-full px-4 py-2 rounded-lg bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your password">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Confirm Password</label>
+                    <input name="password2" type="password" required class="w-full px-4 py-2 rounded-lg bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Confirm your password">
+                </div>
+            </div>
+            
+            <button type="submit" class="mt-6 w-full bg-gradient-to-r from-blue-600 to-blue-400 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:from-blue-500 hover:to-blue-600 transition-all duration-300 flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                </svg>
+                Register
+            </button>
+        </form>
+        
+        <div class="flex items-center my-6">
+            <div class="flex-1 border-t border-gray-700"></div>
+            <span class="px-3 text-gray-500 text-sm">OR</span>
+            <div class="flex-1 border-t border-gray-700"></div>
+        </div>
+        
+        <a href="/login/" class="block text-center text-blue-400 hover:text-blue-300 transition font-medium">
+            Already have an account? <span class="font-semibold underline">Sign in</span>
+        </a>
+    </div>
+</body>
+</html>

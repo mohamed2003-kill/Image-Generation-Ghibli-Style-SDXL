@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>AI Image Generator</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            400: '#60a5fa',
+                            600: '#2563eb',
+                        },
+                        chat: {
+                            user: '#10a37f',
+                            ai: '#343541',
+                            border: '#40414f'
+                        }
+                    },
+                    boxShadow: {
+                        'glow': '0 0 15px rgba(96, 165, 250, 0.5)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .typing-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #6b7280;
+            margin-right: 4px;
+            animation: typingAnimation 1.4s infinite ease-in-out;
+        }
+        .typing-indicator:nth-child(1) {
+            animation-delay: 0s;
+        }
+        .typing-indicator:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .typing-indicator:nth-child(3) {
+            animation-delay: 0.4s;
+            margin-right: 0;
+        }
+        @keyframes typingAnimation {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-5px); }
+        }
+        .progress-text {
+            font-variant-numeric: tabular-nums;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-900 flex flex-col">
+    <div class="flex-1 flex flex-col items-center w-full">
+        <!-- Header -->
+        <header class="w-full py-4 border-b border-gray-700 bg-gray-900/50 backdrop-blur-sm">
+            <div class="container mx-auto px-4 flex justify-between items-center">
+                <h1 class="text-xl font-bold text-white">AI Image Generator</h1>
+                <div class="flex items-center space-x-2">
+                    <span class="h-3 w-3 rounded-full bg-green-500 animate-pulse"></span>
+                    <span class="text-sm text-gray-400">Connected</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Chat Area -->
+        <main class="flex-1 w-full max-w-4xl py-6 px-4 overflow-hidden flex flex-col">
+            <div id="chat-window" class="flex-1 overflow-y-auto space-y-6 pb-6">
+                <!-- Example messages will be added here -->
+            </div>
+
+            <!-- Progress Bar -->
+            <div id="progress-container" class="hidden mt-4 mb-2">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-sm text-gray-400 progress-text">Generating image...</span>
+                    <span id="progress-percent" class="text-sm text-gray-400 progress-text">0%</span>
+                </div>
+                <div class="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+                    <div id="progress-bar" class="h-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-300 ease-out" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="pt-2">
+                <form id="chat-form" class="relative">
+                    <div class="flex rounded-xl border border-gray-600 bg-gray-700 shadow-sm focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all">
+                        <input 
+                            id="prompt" 
+                            name="prompt" 
+                            type="text" 
+                            required 
+                            class="block w-full border-0 bg-transparent py-3 px-4 text-white placeholder-gray-400 focus:ring-0 focus:outline-none" 
+                            placeholder="Describe the image you want to generate..."
+                            autocomplete="off"
+                        >
+                        <button 
+                            type="submit" 
+                            id="submit-btn"
+                            class="flex items-center justify-center px-4 text-gray-400 hover:text-white transition-colors"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                </form>
+                <p class="mt-2 text-xs text-center text-gray-500">AI may produce inaccurate images. Consider verifying important information.</p>
+            </div>
+        </main>
+
+        <!-- Image Result Modal -->
+        <div id="image-modal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 hidden">
+            <div class="relative bg-gray-800 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-auto">
+                <button id="close-modal" class="absolute top-4 right-4 p-2 rounded-full bg-gray-700 hover:bg-gray-600 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+                <div class="p-6">
+                    <div id="modal-image-container" class="flex justify-center">
+                        <!-- Image will be inserted here -->
+                    </div>
+                    <div class="mt-4 flex justify-center space-x-4">
+                        <button id="download-btn" class="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                            Download
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatForm = document.getElementById('chat-form');
+        const chatWindow = document.getElementById('chat-window');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const progressPercent = document.getElementById('progress-percent');
+        const imageModal = document.getElementById('image-modal');
+        const modalImageContainer = document.getElementById('modal-image-container');
+        const closeModal = document.getElementById('close-modal');
+        const downloadBtn = document.getElementById('download-btn');
+        const submitBtn = document.getElementById('submit-btn');
+        
+        let jobId = null;
+        let progressInterval = null;
+        let currentImageUrl = null;
+
+        // Add sample welcome message
+        addAIMessage("Hello! I'm your AI image generator. Describe what you'd like me to create and I'll generate it for you.");
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const prompt = document.getElementById('prompt').value.trim();
+            if (!prompt) return;
+            
+            // Add user message
+            addUserMessage(prompt);
+            
+            // Clear input
+            document.getElementById('prompt').value = '';
+            
+            // Show loading state
+            submitBtn.innerHTML = `
+                <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            `;
+            
+            // Show typing indicator
+            const messageId = 'msg-' + Date.now();
+            addAIMessage('', messageId);
+            showTypingIndicator(messageId);
+            
+            // Show progress bar
+            progressContainer.classList.remove('hidden');
+            updateProgress(0);
+            
+            try {
+                // Start generation
+                const res = await fetch('/generate/', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'X-CSRFToken': getCookie('csrftoken') 
+                    },
+                    body: JSON.stringify({ prompt })
+                });
+                
+                const data = await res.json();
+                
+                if (data.status === 'started') {
+                    jobId = data.job_id;
+                    pollProgress(messageId);
+                } else {
+                    throw new Error(data.message || 'Failed to start generation');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                updateAIMessage(messageId, `<span class="text-red-400">Error: ${error.message}</span>`);
+                progressContainer.classList.add('hidden');
+                submitBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd" />
+                    </svg>
+                `;
+            }
+        });
+
+        function pollProgress(messageId) {
+            if (progressInterval) clearInterval(progressInterval);
+            
+            progressInterval = setInterval(async () => {
+                try {
+                    const res = await fetch(`/progress/?job_id=${jobId}`);
+                    
+                    if (res.headers.get('Content-Type').includes('image/png')) {
+                        // Image is ready
+                        const blob = await res.blob();
+                        const url = URL.createObjectURL(blob);
+                        currentImageUrl = url;
+                        
+                        // Update AI message with image
+                        updateAIMessage(messageId, `
+                            <div class="flex flex-col items-center">
+                                <p class="mb-4">Here's your generated image:</p>
+                                <img src="${url}" class="rounded-lg shadow-lg max-h-64 cursor-pointer hover:opacity-90 transition-opacity" onclick="showImageModal('${url}')"/>
+                                <button onclick="showImageModal('${url}')" class="mt-2 text-sm text-blue-400 hover:text-blue-300 transition-colors">
+                                    View full size
+                                </button>
+                            </div>
+                        `);
+                        
+                        // Hide progress bar
+                        progressContainer.classList.add('hidden');
+                        clearInterval(progressInterval);
+                        submitBtn.innerHTML = `
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        `;
+                    } else {
+                        // Update progress
+                        const data = await res.json();
+                        updateProgress(data.progress);
+                        
+                        // Update message with progress if not complete
+                        if (data.progress < 100) {
+                            updateAIMessage(messageId, `
+                                <div class="flex items-center">
+                                    <span>Generating your image...</span>
+                                    <span class="ml-2 text-gray-400 progress-text">${data.progress}%</span>
+                                </div>
+                            `);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Progress check error:', error);
+                    updateAIMessage(messageId, `<span class="text-red-400">Error checking progress: ${error.message}</span>`);
+                    progressContainer.classList.add('hidden');
+                    clearInterval(progressInterval);
+                    submitBtn.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    `;
+                }
+            }, 1000);
+        }
+
+        function updateProgress(percent) {
+            progressBar.style.width = `${percent}%`;
+            progressPercent.textContent = `${percent}%`;
+            
+            // Change color based on progress
+            if (percent < 30) {
+                progressBar.className = 'h-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-300 ease-out';
+            } else if (percent < 70) {
+                progressBar.className = 'h-full bg-gradient-to-r from-blue-400 to-purple-500 transition-all duration-300 ease-out';
+            } else {
+                progressBar.className = 'h-full bg-gradient-to-r from-purple-500 to-green-500 transition-all duration-300 ease-out';
+            }
+        }
+
+        function addUserMessage(content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'flex justify-end';
+            messageDiv.innerHTML = `
+                <div class="max-w-[80%] bg-chat-user rounded-xl px-4 py-3 text-white">
+                    ${marked.parse(content)}
+                </div>
+            `;
+            chatWindow.appendChild(messageDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        function addAIMessage(content, id = '') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'flex justify-start';
+            messageDiv.id = id;
+            messageDiv.innerHTML = `
+                <div class="max-w-[80%] bg-chat-ai border border-chat-border rounded-xl px-4 py-3 text-white">
+                    ${marked.parse(content)}
+                </div>
+            `;
+            chatWindow.appendChild(messageDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+            return messageDiv;
+        }
+
+        function updateAIMessage(id, content) {
+            const messageDiv = document.getElementById(id);
+            if (messageDiv) {
+                messageDiv.innerHTML = `
+                    <div class="max-w-[80%] bg-chat-ai border border-chat-border rounded-xl px-4 py-3 text-white">
+                        ${content}
+                    </div>
+                `;
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+            }
+        }
+
+        function showTypingIndicator(id) {
+            const messageDiv = document.getElementById(id);
+            if (messageDiv) {
+                messageDiv.innerHTML = `
+                    <div class="max-w-[80%] bg-chat-ai border border-chat-border rounded-xl px-4 py-3 text-white">
+                        <div class="flex items-center">
+                            <span class="typing-indicator"></span>
+                            <span class="typing-indicator"></span>
+                            <span class="typing-indicator"></span>
+                        </div>
+                    </div>
+                `;
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+            }
+        }
+
+        function showImageModal(url) {
+            modalImageContainer.innerHTML = `<img src="${url}" class="rounded-lg max-w-full max-h-[70vh]"/>`;
+            imageModal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeImageModal() {
+            imageModal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        function downloadImage() {
+            if (!currentImageUrl) return;
+            
+            const a = document.createElement('a');
+            a.href = currentImageUrl;
+            a.download = `ai-generated-image-${new Date().toISOString().slice(0, 10)}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        closeModal.addEventListener('click', closeImageModal);
+        downloadBtn.addEventListener('click', downloadImage);
+
+        // Close modal when clicking outside
+        imageModal.addEventListener('click', (e) => {
+            if (e.target === imageModal) {
+                closeImageModal();
+            }
+        });
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Make functions available globally
+        window.showImageModal = showImageModal;
+    </script>
+</body>
+</html>
